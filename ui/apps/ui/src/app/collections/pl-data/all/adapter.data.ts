@@ -38,7 +38,9 @@ const plRedirectUrlAdapter = (
         originator: data.originator ?? '',
       });
 
-      return `${ConfigService.config?.psnc_dashboard_url}offer/${data.id}?${params.toString()}`;
+      return `${ConfigService.config?.psnc_dashboard_url}offer/${
+        data.id
+      }?${params.toString()}`;
     }
 
     default:

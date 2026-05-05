@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring,missing-function-docstring
+# pylint: disable=missing-module-docstring,missing-function-docstring,line-too-long
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
@@ -12,7 +12,7 @@ async def test_return_backend_config(app: FastAPI, client: AsyncClient) -> None:
     assert response.status_code == HTTP_200_OK
     assert response.json() == {
         "eosc_commons_env": "beta",
-        "eosc_commons_url": "https://s3.cloud.cyfronet.pl/eosc-pl-common/",
+        "eosc_commons_url": "https://s3.cloud.cyfronet.pl/sage-common/",
         "eu_marketplace_url": "https://userspace.sandbox.eosc-beyond.eu/",
         "pl_marketplace_url": "https://marketplace.eosc.pl/",
         "psnc_dashboard_url": "https://sage-public-dashboard-sage-data-space.apps.bst2.paas.psnc.pl/",
@@ -24,5 +24,5 @@ async def test_return_backend_config(app: FastAPI, client: AsyncClient) -> None:
         "max_results_by_page": 50,
         "max_items_sort_relevance": 250,
         "show_beta_collections": False,
-        "show_knowledge_base": True,
+        "show_knowledge_base": False,
     }
