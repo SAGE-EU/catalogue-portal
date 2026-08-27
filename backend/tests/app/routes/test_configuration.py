@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring,missing-function-docstring,line-too-long
+# pylint: disable=missing-module-docstring,missing-function-docstring
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
