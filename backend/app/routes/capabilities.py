@@ -15,6 +15,7 @@ router = APIRouter()
 
 @router.get("/capabilities", name="capabilities")
 async def capabilities():
+    """Return the portal's iSHARE capabilities token."""
     if not settings.ISHARE_CLIENT_ID:
         raise HTTPException(
             status_code=503, detail="ISHARE_CLIENT_ID is not configured"

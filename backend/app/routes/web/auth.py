@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring,broad-except,missing-function-docstring,cyclic-import,use-dict-literal
+# pylint: disable=try-except-raise,unused-argument,protected-access,missing-module-docstring,broad-except,missing-function-docstring,cyclic-import,use-dict-literal, line-too-long
 import base64
 import html
 import json

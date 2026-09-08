@@ -63,6 +63,7 @@ def _get_key_jar(config):
 
 @cached(TTLCache(maxsize=1, ttl=64800))
 def get_rp_handler() -> RPHandler:
+    """Create and cache the OIDC relying party handler."""
     return RPHandler(
         base_url=OIDC_CONFIG["base_url"],
         client_configs=OIDC_CONFIG["clients"],
