@@ -1,3 +1,6 @@
+# pylint: disable=missing-function-docstring, use-implicit-booleaness-not-comparison, protected-access, missing-function-docstring
+"""ishare Participant Registry Client Tests"""
+
 from app.schemas.party_registry import PartyListItem
 from app.settings import settings
 from app.utils.ishare_pr_client import IShareParticipantRegistryClient

@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring,missing-function-docstring
+# pylint: disable=missing-module-docstring,missing-function-docstring, line-too-long, missing-class-docstring, unused-argument
 import urllib.parse
 
 import pytest

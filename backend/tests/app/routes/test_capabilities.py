@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring,missing-function-docstring
+# pylint: disable=missing-module-docstring,missing-function-docstring, unused-argument
 import base64
 import json
 

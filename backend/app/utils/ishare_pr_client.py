@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines, too-many-arguments, too-many-positional-arguments, too-many-branches, too-many-return-statements, missing-function-docstring
 """Client utilities for iSHARE Participant Registry discovery and login routing."""
 
 import asyncio
