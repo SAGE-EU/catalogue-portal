@@ -322,12 +322,12 @@ btn-primary.disabled,
   line-height: 1.36;
   float: left;
   margin: 12px 10px 0 12px;
-  color: #2255a4;
+  color: #99CA3C;
   transition: all 0.2s ease;
 }
 
 .clear-button:hover {
-  color: #000;
+  color: #2F523D;
 }
 
 .show-more {
@@ -935,9 +935,25 @@ h6 {
       cursor: pointer;
       color: #99CA3C;
       display: flex;
-      background: url('assets/icon-share.svg') no-repeat 0 3px;
-      padding-left: 20px;
-      background-size: 12px auto;
+      align-items: center;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &::before {
+        content: '';
+        flex-shrink: 0;
+        width: 12px;
+        height: 12px;
+        margin-right: 8px;
+        background-color: currentColor;
+        -webkit-mask: url('assets/icon-share.svg') no-repeat center / contain;
+        mask: url('assets/icon-share.svg') no-repeat center / contain;
+      }
+
+      &:hover,
+      &:focus-visible {
+        color: #2F523D;
+      }
     }
   }
 
@@ -3217,3 +3233,27 @@ h6 {
   }
 }
 
+.ant-tree-checkbox-checked {
+  .ant-tree-checkbox-inner {
+    background-color: #2F523D !important;
+    border-color: #2F523D !important;
+  }
+}
+
+.ant-empty-footer {
+  .ant-btn {
+    background: #2F523D;
+    color: #fff;
+    border: none;
+    font-family: "Roboto";
+
+    &:hover {
+      background: #D0CDAF;
+      color: #34503E;
+    }
+  }
+}
+
+nav[aria-label="breadcrumb"] {
+  display: none !important;
+}
