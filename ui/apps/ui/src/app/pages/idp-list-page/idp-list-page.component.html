@@ -23,7 +23,10 @@
 
     <section *ngIf="state.status === 'loaded'" class="idp-list-page__content">
       <div class="idp-list-page__meta">
-        <span>{{ state.response.items.length }} active data connectors</span>
+        <span
+          >{{ totalCount || state.response.items.length }} active data
+          connectors</span
+        >
         <span>{{ state.response.source.participant_registry_id }}</span>
         <span *ngIf="state.response.source.filters['dataSpaceID']">
           {{ state.response.source.filters['dataSpaceID'] }}
@@ -45,46 +48,73 @@
         No active data connectors found.
       </div>
 
-      <ul *ngIf="state.response.items.length > 0" class="idp-list-page__list">
-        <li
-          *ngFor="let connector of getSortedConnectors(state.response.items)"
-          class="idp-list-page__item"
-          [class.idp-list-page__item--pending]="selectingPartyId === connector.party_id"
-          [class.idp-list-page__item--unavailable]="isConnectorUnavailable(connector)"
-          [attr.aria-busy]="selectingPartyId === connector.party_id"
-          [attr.aria-disabled]="isConnectorUnavailable(connector)"
-          [attr.tabindex]="isConnectorUnavailable(connector) ? -1 : 0"
-          role="button"
-          (click)="selectConnector(connector)"
-          (keyup.enter)="selectConnector(connector)"
-          (keyup.space)="selectConnector(connector)"
+      <ng-container *ngFor="let page of connectorPages; let pageIndex = index">
+        <ul
+          *ngIf="page.length > 0"
+          class="idp-list-page__list"
+          [class.idp-list-page__list--continued]="pageIndex > 0"
         >
-          <div>
-            <h2>{{ connector.name || connector.party_id }}</h2>
-            <p>{{ connector.party_id }}</p>
-          </div>
-          <div class="idp-list-page__item-meta">
-            <ng-container *ngIf="getConnector(connector) as connectorDetails">
-              <span *ngFor="let role of connectorDetails.ishare_roles">{{
-                role
-              }}</span>
-            </ng-container>
-            <span
-              *ngIf="isLoadingDetails(connector)"
-              class="idp-list-page__detail-loader"
-              aria-live="polite"
-            >
-              Loading details...
-            </span>
-            <span
-              *ngIf="areDetailsUnavailable(connector)"
-              class="idp-list-page__detail-warning"
-            >
-              Currently unavailable
-            </span>
-          </div>
-        </li>
-      </ul>
+          <li
+            *ngFor="let connector of getSortedConnectors(page)"
+            class="idp-list-page__item"
+            [class.idp-list-page__item--pending]="
+              selectingPartyId === connector.party_id
+            "
+            [class.idp-list-page__item--unavailable]="
+              isConnectorUnavailable(connector)
+            "
+            [attr.aria-busy]="selectingPartyId === connector.party_id"
+            [attr.aria-disabled]="isConnectorUnavailable(connector)"
+            [attr.tabindex]="isConnectorUnavailable(connector) ? -1 : 0"
+            role="button"
+            (click)="selectConnector(connector)"
+            (keyup.enter)="selectConnector(connector)"
+            (keyup.space)="selectConnector(connector)"
+          >
+            <div>
+              <h2>{{ connector.name || connector.party_id }}</h2>
+              <p>{{ connector.party_id }}</p>
+            </div>
+            <div class="idp-list-page__item-meta">
+              <ng-container *ngIf="getConnector(connector) as connectorDetails">
+                <span *ngFor="let role of connectorDetails.ishare_roles">{{
+                  role
+                }}</span>
+              </ng-container>
+              <span
+                *ngIf="isLoadingDetails(connector)"
+                class="idp-list-page__detail-loader"
+                aria-live="polite"
+              >
+                Loading details...
+              </span>
+              <span
+                *ngIf="areDetailsUnavailable(connector)"
+                class="idp-list-page__detail-warning"
+              >
+                Currently unavailable
+              </span>
+            </div>
+          </li>
+        </ul>
+      </ng-container>
+      <div
+        #loadMoreSentinel
+        class="idp-list-page__load-more"
+        aria-live="polite"
+      >
+        <span *ngIf="loadingNextPage">Loading more data connectors...</span>
+        <span *ngIf="nextPageError">{{ nextPageError }}</span>
+        <button *ngIf="nextPageError" type="button" (click)="loadNextPage()">
+          Retry
+        </button>
+        <span *ngIf="!loadingNextPage && !nextPageError && hasMoreConnectors"
+          >Scroll to load more</span
+        >
+        <span *ngIf="!hasMoreConnectors && connectorPages.length > 1"
+          >All connectors loaded</span
+        >
+      </div>
     </section>
   </ng-container>
 </main>

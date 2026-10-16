@@ -34,3 +34,7 @@ class PartyListResponse(BaseModel):
 
     items: list[PartyListItem]
     source: PartyListSource
+    current_page: int = 1
+    page_size: int = 0
+    total_pages: int = 1
+    total_count: int = 0
