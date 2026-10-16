@@ -1,4 +1,10 @@
-import { Component, Inject } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Inject,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import {
@@ -23,7 +29,27 @@ type IdpListState =
   templateUrl: './idp-list-page.component.html',
   styleUrls: ['./idp-list-page.component.scss'],
 })
-export class IdpListPageComponent {
+export class IdpListPageComponent implements OnDestroy {
+  private intersectionObserver?: IntersectionObserver;
+  @ViewChild('loadMoreSentinel')
+  set loadMoreSentinel(element: ElementRef<HTMLElement> | undefined) {
+    this.intersectionObserver?.disconnect();
+    if (typeof IntersectionObserver === 'undefined' || !element) return;
+    this.intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) this.loadNextPage();
+      },
+      { rootMargin: '400px' }
+    );
+    this.intersectionObserver.observe(element.nativeElement);
+  }
+  readonly pageSize = 20;
+  readonly connectorPages: IdpListItem[][] = [];
+  currentPage = 0;
+  totalPages = 1;
+  totalCount = 0;
+  loadingNextPage = false;
+  nextPageError: string | null = null;
   selectingPartyId: string | null = null;
   selectionError: string | null = null;
   connectorDetails: Record<string, IdpListItem> = {};
@@ -31,9 +57,19 @@ export class IdpListPageComponent {
   detailErrorPartyIds = new Set<string>();
 
   readonly state$: Observable<IdpListState> = this._idpListService
-    .get$(false)
+    .get$(false, 1, this.pageSize)
     .pipe(
-      tap((response) => this.loadConnectorDetails(response.items)),
+      tap((response) => {
+        this.connectorPages.splice(
+          0,
+          this.connectorPages.length,
+          response.items
+        );
+        this.currentPage = response.current_page;
+        this.totalPages = response.total_pages;
+        this.totalCount = response.total_count;
+        this.loadConnectorDetails(response.items);
+      }),
       map((response) => ({ status: 'loaded', response } as IdpListState)),
       startWith({ status: 'loading' } as IdpListState),
       catchError((error) =>
@@ -50,6 +86,40 @@ export class IdpListPageComponent {
     private _route: ActivatedRoute,
     @Inject(DOCUMENT) private _document: Document
   ) {}
+
+  ngOnDestroy(): void {
+    this.intersectionObserver?.disconnect();
+  }
+
+  get hasMoreConnectors(): boolean {
+    return (
+      this.currentPage < this.totalPages &&
+      this.connectorPages.reduce((total, page) => total + page.length, 0) <
+        this.totalCount
+    );
+  }
+
+  loadNextPage(): void {
+    if (this.loadingNextPage || !this.hasMoreConnectors) return;
+    const requestedPage = this.currentPage + 1;
+    this.loadingNextPage = true;
+    this.nextPageError = null;
+    this._idpListService
+      .get$(false, requestedPage, this.pageSize)
+      .pipe(finalize(() => (this.loadingNextPage = false)))
+      .subscribe({
+        next: (response) => {
+          this.connectorPages.push(response.items);
+          this.currentPage = response.current_page;
+          this.totalPages = response.total_pages;
+          this.totalCount = response.total_count;
+          this.loadConnectorDetails(response.items);
+        },
+        error: () => {
+          this.nextPageError = 'The next connector page could not be loaded.';
+        },
+      });
+  }
 
   get hasPendingNavigation(): boolean {
     return this._route.snapshot.queryParamMap.has('next');

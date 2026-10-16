@@ -72,6 +72,19 @@
   list-style: none;
 }
 
+.idp-list-page__list--continued {
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.idp-list-page__load-more {
+  min-height: 3rem;
+  padding: 1rem;
+  color: #626b73;
+  text-align: center;
+}
+
 .idp-list-page__item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -82,9 +95,7 @@
   border-radius: 8px;
   background: #fff;
   cursor: pointer;
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
+  transition: border-color 0.18s ease, box-shadow 0.18s ease,
     transform 0.18s ease;
 
   &:hover,

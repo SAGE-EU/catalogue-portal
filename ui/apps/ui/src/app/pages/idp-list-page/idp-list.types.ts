@@ -14,6 +14,10 @@ export interface IdpListItem {
 
 export interface IdpListResponse {
   items: IdpListItem[];
+  current_page: number;
+  page_size: number;
+  total_pages: number;
+  total_count: number;
   source: {
     participant_registry_id: string;
     parties_endpoint: string;

@@ -86,6 +86,7 @@ class GlobalSettings(BaseSettings):
     ISHARE_CONNECTOR_TAG: str = "connector"
     ISHARE_CONNECTOR_REGISTRAR_ID: Optional[str] = None
     ISHARE_CONNECTOR_ACTIVE_ONLY: bool = True
+    ISHARE_CONNECTOR_VALIDATE_CAPABILITIES_ISSUER: bool = False
     ISHARE_IDP_ACTIVE_ONLY: bool = True
     ISHARE_ASSOCIATED_IDP_IDENTIFIER: str = "associated-idp"
     ISHARE_AUTHORIZE_SCOPE: str = "openid iSHARE"

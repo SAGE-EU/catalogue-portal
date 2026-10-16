@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 from cachetools import TTLCache
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from starlette import status
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -35,10 +35,14 @@ connector_login_cache = TTLCache(maxsize=100, ttl=600)
 
 
 @router.get("/connectors", name="web:auth-connectors", response_model=PartyListResponse)
-async def auth_connectors(include_details: bool = True):
+async def auth_connectors(
+    include_details: bool = True,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+):
     try:
         return await IShareParticipantRegistryClient(settings).get_connector_list(
-            include_details=include_details
+            include_details=include_details, page=page, page_size=page_size
         )
     except IShareConfigurationError as err:
         raise HTTPException(status_code=503, detail=str(err)) from err
@@ -162,7 +166,12 @@ async def connector_login_request(party_id: str):
             )
 
         connector_capabilities = await client.get_capabilities(
-            connector.capability_url, expected_issuer=connector.party_id
+            connector.capability_url,
+            expected_issuer=(
+                connector.party_id
+                if settings.ISHARE_CONNECTOR_VALIDATE_CAPABILITIES_ISSUER
+                else None
+            ),
         )
         associated_idp_party_id = client.extract_associated_idp_party_id(
             connector_capabilities

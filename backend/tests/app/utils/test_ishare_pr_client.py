@@ -13,6 +13,87 @@ def test_extract_party_list_from_v211_parties_info_payload():
     assert client._extract_party_list({"parties_info": {"data": [party]}}) == [party]
 
 
+def test_extract_pagination_from_registry_metadata():
+    client = IShareParticipantRegistryClient(settings)
+    result = client._extract_pagination(
+        {
+            "parties_info": {
+                "currentPage": 2,
+                "pageSize": 20,
+                "totalPages": 4,
+                "totalCount": 73,
+            }
+        },
+        requested_page=1,
+        requested_size=20,
+        item_count=20,
+    )
+    assert result == {
+        "current_page": 2,
+        "page_size": 20,
+        "total_pages": 4,
+        "total_count": 73,
+    }
+
+
+def test_extract_pagination_from_legacy_registry_metadata():
+    result = IShareParticipantRegistryClient._extract_pagination(
+        {"parties_info": {"pageCount": 1, "count": 10, "total_count": 15}},
+        requested_page=1,
+        requested_size=20,
+        item_count=10,
+    )
+    assert result == {
+        "current_page": 1,
+        "page_size": 20,
+        "total_pages": 2,
+        "total_count": 15,
+    }
+
+
+async def test_connector_capabilities_issuer_validation_is_disabled_by_default(
+    monkeypatch,
+):
+    client = IShareParticipantRegistryClient(settings)
+    observed = {}
+
+    async def fake_get_capabilities(url, expected_issuer):
+        observed["expected_issuer"] = expected_issuer
+        return {"capabilities_info": {}}
+
+    monkeypatch.setattr(client, "get_capabilities", fake_get_capabilities)
+    item = PartyListItem(
+        party_id="connector-party-id",
+        role="ServiceProvider",
+        status="Active",
+        capability_url="https://connector.example/capabilities",
+    )
+    await client._enrich_connector_item(item)
+    assert observed["expected_issuer"] is None
+
+
+async def test_connector_capabilities_issuer_validation_can_be_enabled(monkeypatch):
+    enabled_settings = settings.model_copy(
+        update={"ISHARE_CONNECTOR_VALIDATE_CAPABILITIES_ISSUER": True}
+    )
+    client = IShareParticipantRegistryClient(enabled_settings)
+    observed = {}
+
+    async def fake_get_capabilities(url, expected_issuer):
+        observed["expected_issuer"] = expected_issuer
+        return {"capabilities_info": {}}
+
+    monkeypatch.setattr(client, "get_capabilities", fake_get_capabilities)
+    item = PartyListItem(
+        party_id="connector-party-id",
+        role="ServiceProvider",
+        status="Active",
+        capability_url="https://connector.example/capabilities",
+    )
+    await client._enrich_connector_item(item)
+    assert observed["expected_issuer"] == "connector-party-id"
+
+
 def test_build_service_provider_list_item_from_v211_party_shape():
     client = IShareParticipantRegistryClient(settings)
     party = {

@@ -1,4 +1,4 @@
-# pylint: disable=too-many-lines, too-many-arguments, too-many-positional-arguments, too-many-branches, too-many-return-statements, missing-function-docstring
+# pylint: disable=too-many-lines, too-many-arguments, too-many-positional-arguments, too-many-branches, too-many-return-statements, missing-function-docstring, too-many-locals
 """Client utilities for iSHARE Participant Registry discovery and login routing."""
 
 import asyncio
@@ -49,7 +49,7 @@ class IShareParticipantRegistryClient:
         self._version = settings.ISHARE_PR_VERSION.strip("/")
 
     async def get_connector_list(
-        self, include_details: bool = True
+        self, include_details: bool = True, page: int = 1, page_size: int = 20
     ) -> PartyListResponse:
         """Return validated data connectors for the configured Sage data space."""
 
@@ -61,6 +61,8 @@ class IShareParticipantRegistryClient:
             active_only=self._settings.ISHARE_CONNECTOR_ACTIVE_ONLY,
             capability_url_overrides=self._settings.ISHARE_CONNECTOR_CAPABILITY_URL_OVERRIDES,
             dashboard_url_overrides=self._settings.ISHARE_CONNECTOR_DASHBOARD_URL_OVERRIDES,
+            page=page,
+            page_size=page_size,
         )
         if self._settings.ISHARE_CONNECTOR_ACTIVE_ONLY:
             await self._refresh_connector_items_from_party_records(response.items)
@@ -112,6 +114,8 @@ class IShareParticipantRegistryClient:
         capability_url_overrides: Optional[dict[str, str]] = None,
         authorize_url_overrides: Optional[dict[str, str]] = None,
         dashboard_url_overrides: Optional[dict[str, str]] = None,
+        page: int = 1,
+        page_size: int = 20,
     ) -> PartyListResponse:
         """Return validated parties that match the requested filters."""
 
@@ -123,8 +127,13 @@ class IShareParticipantRegistryClient:
             registrar_id=registrar_id,
             active_only=active_only,
         )
-        parties_payload = await self._get_parties(access_token, filters)
+        parties_payload = await self._get_parties(
+            access_token, filters, page=page, page_size=page_size
+        )
         parties = self._extract_party_list(parties_payload)
+        pagination = self._extract_pagination(
+            parties_payload, page, page_size, len(parties)
+        )
         items = [
             item
             for item in (
@@ -145,6 +154,7 @@ class IShareParticipantRegistryClient:
 
         return PartyListResponse(
             items=items,
+            **pagination,
             source=PartyListSource(
                 participant_registry_id=(
                     self._settings.ISHARE_PR_PARTICIPANT_REGISTRY_ID
@@ -539,7 +549,13 @@ class IShareParticipantRegistryClient:
 
         return access_token
 
-    async def _get_parties(self, access_token: str, filters: dict[str, str]) -> Any:
+    async def _get_parties(
+        self,
+        access_token: str,
+        filters: dict[str, str],
+        page: int = 1,
+        page_size: int = 20,
+    ) -> Any:
         headers = {"Authorization": f"Bearer {access_token}"}
 
         async with httpx.AsyncClient(
@@ -550,7 +566,14 @@ class IShareParticipantRegistryClient:
             for parties_endpoint in self._parties_endpoints:
                 try:
                     response = await client.get(
-                        parties_endpoint, params=filters, headers=headers
+                        parties_endpoint,
+                        params={
+                            **filters,
+                            "page": page,
+                            "pageSize": page_size,
+                            "size": page_size,
+                        },
+                        headers=headers,
                     )
                     response.raise_for_status()
                     break
@@ -722,7 +745,14 @@ class IShareParticipantRegistryClient:
                 "Participant Registry response does not contain party objects"
             )
 
-        for key in ("parties", "parties_info", "items", "data", "results"):
+        for key in (
+            "parties",
+            "parties_info",
+            "partiesInfo",
+            "items",
+            "data",
+            "results",
+        ):
             value = payload.get(key)
             if isinstance(value, list):
                 return [item for item in value if isinstance(item, dict)]
@@ -740,6 +770,51 @@ class IShareParticipantRegistryClient:
         raise IShareParticipantRegistryError(
             "Participant Registry response does not include a party list"
         )
+
+    @staticmethod
+    def _extract_pagination(
+        payload: Any, requested_page: int, requested_size: int, item_count: int
+    ) -> dict[str, int]:
+        """Normalize iSHARE's pagination metadata across registry versions."""
+        info = payload if isinstance(payload, dict) else {}
+        for key in ("partiesInfo", "parties_info"):
+            if isinstance(info.get(key), dict):
+                info = info[key]
+                break
+        current = info.get(
+            "currentPage", info.get("page", info.get("pageCount", requested_page))
+        )
+        size = info.get("pageSize", info.get("size", requested_size))
+        total_count = info.get("totalCount", info.get("total_count"))
+        total_pages = info.get("totalPages")
+        response_count = info.get("count")
+        try:
+            current = int(current)
+            size = int(size)
+            total_count = int(total_count) if total_count is not None else item_count
+            if total_pages is None:
+                legacy_size = (
+                    int(response_count) if response_count is not None else size
+                )
+                total_pages = max(
+                    current,
+                    (total_count + max(legacy_size, 1) - 1) // max(legacy_size, 1),
+                )
+            else:
+                total_pages = int(total_pages)
+        except (TypeError, ValueError):
+            current, size, total_count, total_pages = (
+                requested_page,
+                requested_size,
+                item_count,
+                1,
+            )
+        return {
+            "current_page": current,
+            "page_size": size,
+            "total_pages": total_pages,
+            "total_count": total_count,
+        }
 
     def _to_party_list_item(
         self,
@@ -813,7 +888,12 @@ class IShareParticipantRegistryClient:
     async def _enrich_connector_item(self, item: PartyListItem) -> None:
         try:
             capabilities = await self.get_capabilities(
-                item.capability_url, expected_issuer=item.party_id
+                item.capability_url,
+                expected_issuer=(
+                    item.party_id
+                    if self._settings.ISHARE_CONNECTOR_VALIDATE_CAPABILITIES_ISSUER
+                    else None
+                ),
             )
         except IShareParticipantRegistryError:
             return

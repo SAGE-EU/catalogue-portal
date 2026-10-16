@@ -14,12 +14,18 @@ import {
 export class IdpListService {
   constructor(private _http: HttpClient) {}
 
-  get$(includeDetails = true): Observable<IdpListResponse> {
+  get$(
+    includeDetails = true,
+    page = 1,
+    pageSize = 20
+  ): Observable<IdpListResponse> {
     return this._http.get<IdpListResponse>(
       `${environment.backendApiPath}/auth/connectors`,
       {
         params: {
           include_details: String(includeDetails),
+          page: String(page),
+          page_size: String(pageSize),
         },
       }
     );
